@@ -45,14 +45,14 @@ struct Tokenizer {
   token_list: Vec<Token>,
   index: usize,
   next_index: usize,
-  code_point: Option<char>, // TODO: get rid of Option
+  code_point: char,
 }
 
 impl Tokenizer {
   // Ref: https://wicg.github.io/urlpattern/#get-the-next-code-point
   #[inline]
   fn get_next_codepoint(&mut self) {
-    self.code_point = Some(self.input[self.next_index]);
+    self.code_point = self.input[self.next_index];
     self.next_index += 1;
   }
 
@@ -87,7 +87,7 @@ impl Tokenizer {
     self.token_list.push(Token {
       kind,
       index: self.index,
-      value, // TODO: check if this is right
+      value,
     });
     self.index = next_pos;
   }
@@ -130,22 +130,22 @@ pub fn tokenize(
     token_list: vec![],
     index: 0,
     next_index: 0,
-    code_point: None,
+    code_point: '\0',
   };
 
   while tokenizer.index < tokenizer.input.len() {
     tokenizer.next_index = tokenizer.index;
     tokenizer.get_next_codepoint();
 
-    if tokenizer.code_point == Some('*') {
+    if tokenizer.code_point == '*' {
       tokenizer.add_token_with_default_pos_and_len(TokenType::Asterisk);
       continue;
     }
-    if matches!(tokenizer.code_point, Some('+') | Some('?')) {
+    if matches!(tokenizer.code_point, '+' | '?') {
       tokenizer.add_token_with_default_pos_and_len(TokenType::OtherModifier);
       continue;
     }
-    if tokenizer.code_point == Some('\\') {
+    if tokenizer.code_point == '\\' {
       if tokenizer.index == (tokenizer.input.len() - 1) {
         tokenizer.process_tokenizing_error(
           tokenizer.next_index,
@@ -163,24 +163,22 @@ pub fn tokenize(
       );
       continue;
     }
-    if tokenizer.code_point == Some('{') {
+    if tokenizer.code_point == '{' {
       tokenizer.add_token_with_default_pos_and_len(TokenType::Open);
       continue;
     }
-    if tokenizer.code_point == Some('}') {
+    if tokenizer.code_point == '}' {
       tokenizer.add_token_with_default_pos_and_len(TokenType::Close);
       continue;
     }
-    if tokenizer.code_point == Some(':') {
+    if tokenizer.code_point == ':' {
       let mut name_pos = tokenizer.next_index;
       let name_start = name_pos;
       while name_pos < tokenizer.input.len() {
         tokenizer.seek_and_get_next_codepoint(name_pos);
         let first_code_point = name_pos == name_start;
-        let valid_codepoint = is_valid_name_codepoint(
-          tokenizer.code_point.unwrap(),
-          first_code_point,
-        );
+        let valid_codepoint =
+          is_valid_name_codepoint(tokenizer.code_point, first_code_point);
         if !valid_codepoint {
           break;
         }
@@ -202,7 +200,7 @@ pub fn tokenize(
       continue;
     }
 
-    if tokenizer.code_point == Some('(') {
+    if tokenizer.code_point == '(' {
       let mut depth = 1;
       let mut regexp_pos = tokenizer.next_index;
       let regexp_start = regexp_pos;
@@ -210,8 +208,8 @@ pub fn tokenize(
       // TODO: input code point length
       while regexp_pos < tokenizer.input.len() {
         tokenizer.seek_and_get_next_codepoint(regexp_pos);
-        if !tokenizer.code_point.unwrap().is_ascii()
-          || (regexp_pos == regexp_start && tokenizer.code_point == Some('?'))
+        if !tokenizer.code_point.is_ascii()
+          || (regexp_pos == regexp_start && tokenizer.code_point == '?')
         {
           tokenizer.process_tokenizing_error(
             regexp_start,
@@ -223,7 +221,7 @@ pub fn tokenize(
           error = true;
           break;
         }
-        if tokenizer.code_point == Some('\\') {
+        if tokenizer.code_point == '\\' {
           if regexp_pos == (tokenizer.input.len() - 1) {
             tokenizer.process_tokenizing_error(
               regexp_start,
@@ -234,7 +232,7 @@ pub fn tokenize(
             break;
           }
           tokenizer.get_next_codepoint();
-          if !tokenizer.code_point.unwrap().is_ascii() {
+          if !tokenizer.code_point.is_ascii() {
             tokenizer.process_tokenizing_error(
               regexp_start,
               tokenizer.index,
@@ -246,13 +244,13 @@ pub fn tokenize(
           regexp_pos = tokenizer.next_index;
           continue;
         }
-        if tokenizer.code_point == Some(')') {
+        if tokenizer.code_point == ')' {
           depth -= 1;
           if depth == 0 {
             regexp_pos = tokenizer.next_index;
             break;
           }
-        } else if tokenizer.code_point == Some('(') {
+        } else if tokenizer.code_point == '(' {
           depth += 1;
           if regexp_pos == (tokenizer.input.len() - 1) {
             tokenizer.process_tokenizing_error(
@@ -265,7 +263,7 @@ pub fn tokenize(
           }
           let temp_pos = tokenizer.next_index;
           tokenizer.get_next_codepoint();
-          if tokenizer.code_point != Some('?') {
+          if tokenizer.code_point != '?' {
             tokenizer.process_tokenizing_error(
               regexp_start,
               tokenizer.index,

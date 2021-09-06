@@ -138,7 +138,7 @@ fn generate_regular_expression_and_name_list(
       regexp_value,
       escape_regexp_string(&part.suffix),
       if part.modifier == PartModifier::ZeroOrMore {
-        "?" // TODO: https://github.com/WICG/urlpattern/issues/91
+        "?"
       } else {
         ""
       }

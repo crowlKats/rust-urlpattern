@@ -10,8 +10,8 @@ pub const FULL_WILDCARD_REGEXP_VALUE: &str = ".*";
 
 // Ref: https://wicg.github.io/urlpattern/#options-header
 pub struct Options {
-  delimiter_code_point: String, // TODO: It must contain one ASCII code point or the empty string. maybe Option<char>?
-  pub prefix_code_point: String, // TODO: It must contain one ASCII code point or the empty string. maybe Option<char>?
+  delimiter_code_point: String,
+  pub prefix_code_point: String,
 }
 
 impl std::default::Default for Options {
